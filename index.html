@@ -1,0 +1,126 @@
+<html>
+    <head>
+    <title>Jsonnet Playground</title>
+    <link rel="stylesheet" href="https://jsonnet.org/third_party/CodeMirror/lib/codemirror.css">
+    <script src="https://jsonnet.org/third_party/js-yaml/dist/js-yaml.min.js"></script>
+    <script src="https://jsonnet.org/third_party/CodeMirror/lib/codemirror.js"></script>
+    <script src="https://jsonnet.org/third_party/CodeMirror/mode/yaml/yaml.js"></script>
+    <script src="https://jsonnet.org/third_party/CodeMirror/addon/edit/matchbrackets.js"></script>
+    <script src="https://jsonnet.org/js/codemirror-mode-jsonnet.js"></script>
+    <script src="https://jsonnet.org/js/wasm_exec.js"></script>
+    <script type="text/javascript">
+        function getSearchParameters() {
+            var prmstr = window.location.search.substr(1);
+            return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+        }
+
+        function transformToAssocArray(prmstr) {
+            var params = {};
+            var prmarr = prmstr.split("&");
+            for (var i = 0; i < prmarr.length; i++) {
+                var tmparr = prmarr[i].split("=");
+                params[tmparr[0]] = tmparr[1];
+            }
+            return params;
+        }
+        if (!WebAssembly.instantiateStreaming) {
+            // This function was observed to be missing on Safari 14.
+            WebAssembly.instantiateStreaming = async (resp, importObject) => {
+                const source = await (await resp).arrayBuffer();
+                return await WebAssembly.instantiate(source, importObject);
+            };
+        }
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("https://jsonnet.org/js/libjsonnet.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+            var params = getSearchParameters();
+            var editor = document.querySelector('.CodeMirror');
+
+            var fmt = async function() {
+                var code = editor.CodeMirror.getDoc().getValue()
+                var code_fmt = await jsonnet_fmt_snippet('example1.jsonnet', code)
+                editor.CodeMirror.getDoc().setValue(code_fmt)
+            };
+            editor.CodeMirror.on('refresh', fmt);
+            editor.CodeMirror.on('blur', fmt);
+
+            var code = '{ hello: "playground" }';
+            if (typeof params["code"] !== "undefined") {
+                code = decodeURIComponent(params["code"]);
+            }
+            editor.CodeMirror.getDoc().setValue(code)
+            editor.CodeMirror.refresh()
+        });
+    </script>
+    <script src="https://jsonnet.org/js/demo.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://jsonnet.org/css/doc.css" />
+    <style type="text/css">
+        body {
+            background-color: #0064bd;
+        }
+        div.hgroup-inline {
+            width: 100%;
+            height: 100%;
+        }
+        div.inverse {
+            height: 100%;
+            padding: 0px;
+            background: none;
+        }
+        .tab-window-input,
+        .tab-window-output {
+            width: 49%;
+            height: 100%;
+            border-radius: unset;
+            float:left;
+        }
+        .tab-window-output {
+            float:right;
+        }
+        .tab-header {
+            display: none;
+        }
+        .CodeMirror, .code-json, .code-error {
+            height: 100% !important;
+            border-radius: unset;
+        }
+    </style>
+</head>
+<body>
+<div class="inverse hgroup">
+  <div class=hgroup-inline>
+    <div class="tab-window-input" id="example1-input">
+      <div class="tab-header">
+      </div>
+      <textarea id=example1-jsonnet autofocus>
+      {}
+      </textarea>
+    </div>
+    <div class="tab-window-output" id="example1-output">
+      <div class="tab-header">
+        <div class=selected onclick="tab_output_click(this, 'example1-json-output')">
+          output.json
+        </div>
+      </div>
+      <textarea readonly class="selected code-json" id="example1-json-output">
+      {}
+      </textarea>
+    </div>
+    <script>
+      demo(
+        'example1-input',
+        {
+          'example1-jsonnet': 'example1.jsonnet',
+        },
+        'example1.jsonnet',
+        'example1-output',
+        false,
+        false
+      );
+    </script>
+    <div style="clear: both"></div>
+  </div>
+</div>
+</body>
+</html
+
