@@ -14,6 +14,15 @@
             return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
         }
 
+        function setSearchParameter(key, value) {
+            var k = encodeURIComponent(key);
+            var v = encodeURIComponent(value);
+
+            var params = getSearchParameters();
+            params[k] = v;
+            window.history.pushState({}, null, '?' + transformToParams(params).join('&'));
+        }
+
         function transformToAssocArray(prmstr) {
             var params = {};
             var prmarr = prmstr.split("&");
@@ -23,6 +32,16 @@
             }
             return params;
         }
+
+        function transformToParams(prmarr) {
+            var params = [];
+            for (let i in prmarr) {
+                var prmstr = i + '=' + prmarr[i];
+                params.push(prmstr);
+            }
+            return params;
+        }
+
         if (!WebAssembly.instantiateStreaming) {
             // This function was observed to be missing on Safari 14.
             WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -33,16 +52,21 @@
         const go = new Go();
         WebAssembly.instantiateStreaming(fetch("https://jsonnet.org/js/libjsonnet.wasm"), go.importObject).then((result) => {
             go.run(result.instance);
+
             var params = getSearchParameters();
             var editor = document.querySelector('.CodeMirror');
 
             var fmt = async function() {
-                var code = editor.CodeMirror.getDoc().getValue()
-                var code_fmt = await jsonnet_fmt_snippet('example1.jsonnet', code)
-                editor.CodeMirror.getDoc().setValue(code_fmt)
+                var code = editor.CodeMirror.getDoc().getValue();
+                var code_fmt = await jsonnet_fmt_snippet('example1.jsonnet', code);
+                editor.CodeMirror.getDoc().setValue(code_fmt);
             };
             editor.CodeMirror.on('refresh', fmt);
             editor.CodeMirror.on('blur', fmt);
+            editor.CodeMirror.on('blur', function() {
+                var code = editor.CodeMirror.getDoc().getValue();
+                setSearchParameter('code', code);
+            });
 
             var code = '{ hello: "playground" }';
             if (typeof params["code"] !== "undefined") {
