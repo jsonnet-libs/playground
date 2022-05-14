@@ -19,8 +19,12 @@
             var v = encodeURIComponent(value);
 
             var params = getSearchParameters();
-            params[k] = v;
-            window.history.pushState({}, null, '?' + transformToParams(params).join('&'));
+            // Only update history when url changes
+            if (params[k] != v) {
+                params[k] = v;
+                console.log("update history");
+                window.history.pushState({}, null, '?' + transformToParams(params).join('&'));
+            }
         }
 
         function transformToAssocArray(prmstr) {
@@ -40,6 +44,18 @@
                 params.push(prmstr);
             }
             return params;
+        }
+
+        function updateCode() {
+            var params = getSearchParameters();
+            var editor = document.querySelector('.CodeMirror');
+            var code = '{ hello: "playground" }';
+
+            if (typeof params["code"] !== "undefined") {
+                code = atob(decodeURIComponent(params["code"]));
+            }
+            editor.CodeMirror.getDoc().setValue(code)
+            editor.CodeMirror.refresh()
         }
 
         if (!WebAssembly.instantiateStreaming) {
@@ -63,17 +79,14 @@
             };
             editor.CodeMirror.on('refresh', fmt);
             editor.CodeMirror.on('blur', fmt);
+
             editor.CodeMirror.on('blur', function() {
-                var code = editor.CodeMirror.getDoc().getValue();
+                var code = btoa(editor.CodeMirror.getDoc().getValue());
                 setSearchParameter('code', code);
             });
 
-            var code = '{ hello: "playground" }';
-            if (typeof params["code"] !== "undefined") {
-                code = decodeURIComponent(params["code"]);
-            }
-            editor.CodeMirror.getDoc().setValue(code)
-            editor.CodeMirror.refresh()
+            updateCode()
+            window.addEventListener('popstate', updateCode);
         });
     </script>
     <script src="https://jsonnet.org/js/demo.js"></script>
